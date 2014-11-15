@@ -1,3 +1,10 @@
+//
+//    main.cpp
+//
+//    Author: Sebastian Mach
+//    Created on Nov. 14 2014
+//
+
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
@@ -5,8 +12,8 @@
 #include <bitset>
 
 
-
 #define PI2 6.28318530717958647692
+#define MAXBITS 64
 
 
 
@@ -17,7 +24,7 @@ static int  generateSine(int numberOfSines, int pointsPerSine, int resolution, b
 
 int main(int argc, char ** argv)
 {
-    std::cout << "VHDL SinusGenerator by Sebastian Mach Copyright (C) 2014-2015" << std::endl << std::endl;
+    std::cout << "VHDL SinusGenerator by Sebastian Mach" << std::endl << std::endl;
 
 
 
@@ -93,9 +100,9 @@ int main(int argc, char ** argv)
         printUsage(argv[0]);
         return EXIT_FAILURE;
     }
-    else if (resolution < 1 || resolution > 64)
+    else if (resolution < 1 || resolution > MAXBITS)
     {
-        std::cerr << "Invalid Value for resolution (valid values are 1 to 64)" << std::endl;
+        std::cerr << "Invalid Value for resolution (valid values are 1 to " << MAXBITS << ")" << std::endl;
         printUsage(argv[0]);
         return EXIT_FAILURE;
     }
@@ -151,6 +158,19 @@ static int generateSine(int numberOfSines, int pointsPerSine, int resolution, bo
     /* GENERATE SINE VALUES                                                                                           */
     /*================================================================================================================*/
 
+
+    std::stringstream startText;
+    startText << "    type array_type is array (natural range <>) of std_logic_vector(" << (resolution - 1) << " downto 0);" << std::endl;
+    startText << "    constant array_const : array_type := (" << std::endl;
+
+    if (verbose) {
+        std::cout << startText.str();
+    }
+
+    outputFile << startText.str();
+
+
+
     for (int i = 0; i < numberOfSines; i++)
     {
         for (double sinArg = 0; sinArg < PI2; sinArg += (PI2 / pointsPerSine))
@@ -163,17 +183,37 @@ static int generateSine(int numberOfSines, int pointsPerSine, int resolution, bo
             matchedSineVal /= 2;
             matchedSineVal *= ((2 << (resolution - 1)) - 1);
 
-            std::bitset<64> bits(matchedSineVal);
+            std::bitset<MAXBITS> bits(matchedSineVal);
             std::string bitsString = bits.to_string<char,std::string::traits_type,std::string::allocator_type>();
-            bitsString = bitsString.substr(64 - resolution, resolution);
+            bitsString = bitsString.substr(MAXBITS - resolution, resolution);
+
+            std::stringstream lineText;
+            lineText << "        \"" << bitsString << "\"";
+
+
+            if (sinArg + (PI2 / pointsPerSine) >= PI2)
+                lineText << std::endl;
+            else
+                lineText << "," << std::endl;
+
 
             if (verbose) {
-                std::cout << bitsString << std::endl;
+                std::cout << lineText.str();
             }
 
-            outputFile << bitsString << std::endl;
+            outputFile << lineText.str();
         }
     }
+
+
+
+    std::string endText = "    );";
+
+    if (verbose) {
+        std::cout << endText << std::endl;
+    }
+
+    outputFile << endText << std::endl;
 
 
 
